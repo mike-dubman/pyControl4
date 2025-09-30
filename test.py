@@ -60,6 +60,11 @@ parser.add_argument(
     help="Query and pretty print all available devices",
 )
 parser.add_argument("--limit", type=int, help="Limit number of listed items")
+parser.add_argument(
+    "--open-gate",
+    action="store_true",
+    help="Open the gate (relay id 547)",
+)
 args = parser.parse_args()
 
 _cfg = _load_credentials()
@@ -110,6 +115,14 @@ def print_all_devices(director: C4Director, limit: int | None = None):
         )
 
 
+def open_gate(director: C4Director, relay_id: int = 547):
+    """Open a relay (defaults to the gate at id 547)."""
+    from pyControl4.relay import C4Relay
+
+    relay = C4Relay(director, relay_id)
+    asyncio.run(relay.open())
+
+
 # Authenticate and connect
 account = C4Account(username, password)
 asyncio.run(account.getAccountBearerToken())
@@ -121,6 +134,12 @@ director = C4Director(ip, director_bearer_token["token"])
 
 if args.list_all:
     print_all_devices(director, args.limit)
+    sys.exit(0)
+
+if args.open_gate:
+    print("Opening gate (relay 547)...")
+    open_gate(director, 547)
+    print("Gate open command sent.")
     sys.exit(0)
 
 print("Connected to Director.")
@@ -173,3 +192,8 @@ print("Connected to Director.")
 # light = C4Light(director, 253)
 # asyncio.run(light.rampToLevel(10, 10000))
 # print(asyncio.run(light.getState()))
+
+# Relay (gate) example
+# from pyControl4.relay import C4Relay
+# gate = C4Relay(director, 547)
+# asyncio.run(gate.open())
