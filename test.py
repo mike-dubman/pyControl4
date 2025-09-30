@@ -60,6 +60,11 @@ parser.add_argument(
     help="Query and pretty print all available devices",
 )
 parser.add_argument("--limit", type=int, help="Limit number of listed items")
+parser.add_argument(
+    "--open-relay",
+    type=int,
+    help="Open a relay by id (e.g. --open-relay 547)",
+)
 args = parser.parse_args()
 
 _cfg = _load_credentials()
@@ -129,6 +134,14 @@ director = C4Director(ip, director_bearer_token["token"])
 
 if args.list_all:
     print_all_devices(director, args.limit)
+    sys.exit(0)
+
+
+if args.open_relay is not None:
+    rid = int(args.open_relay)
+    print(f"Opening relay {rid}...")
+    open_relay(director, rid)
+    print("Relay open command sent.")
     sys.exit(0)
 
 
