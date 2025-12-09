@@ -65,6 +65,20 @@ parser.add_argument(
     type=int,
     help="Open a relay by id (e.g. --open-relay 547)",
 )
+parser.add_argument(
+    "--save-all",
+    help="Save full items JSON to the given file (e.g. allitems.json)",
+)
+parser.add_argument(
+    "--blind-id",
+    type=int,
+    help="Blind item id for a blind operation (requires --blind-cmd)",
+)
+parser.add_argument(
+    "--blind-cmd",
+    choices=["open", "close", "stop", "toggle"],
+    help="Blind command to run on --blind-id",
+)
 args = parser.parse_args()
 
 _cfg = _load_credentials()
@@ -122,6 +136,23 @@ def open_relay(director: C4Director, relay_id: int):
     relay = C4Relay(director, relay_id)
     asyncio.run(relay.open())
 
+def run_blind_command(director: C4Director, blind_id: int, cmd: str):
+    """Run a blind command on a given blind id."""
+    from pyControl4.blind import C4Blind
+
+    blind = C4Blind(director, blind_id)
+    if cmd == "open":
+        asyncio.run(blind.open())
+    elif cmd == "close":
+        asyncio.run(blind.close())
+    elif cmd == "stop":
+        asyncio.run(blind.stop())
+    elif cmd == "toggle":
+        asyncio.run(blind.toggle())
+    else:
+        print(f"Unknown blind command: {cmd}", file=sys.stderr)
+        sys.exit(2)
+
 
 # Authenticate and connect
 account = C4Account(username, password)
@@ -137,11 +168,33 @@ if args.list_all:
     sys.exit(0)
 
 
+if args.save_all:
+    items_json = asyncio.run(director.getAllItemInfo())
+    try:
+        data = json.loads(items_json)
+    except Exception:
+        data = items_json
+    with open(args.save_all, "w", encoding="utf-8") as f:
+        if isinstance(data, (list, dict)):
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        else:
+            f.write(items_json)
+    print(f"Saved all items to {args.save_all}")
+    sys.exit(0)
+
+
 if args.open_relay is not None:
     rid = int(args.open_relay)
     print(f"Opening relay {rid}...")
     open_relay(director, rid)
     print("Relay open command sent.")
+    sys.exit(0)
+
+
+if args.blind_id is not None and args.blind_cmd:
+    print(f"Running blind command '{args.blind_cmd}' on blind id {args.blind_id}...")
+    run_blind_command(director, args.blind_id, args.blind_cmd)
+    print("Blind command sent.")
     sys.exit(0)
 
 
